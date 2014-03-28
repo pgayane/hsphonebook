@@ -1,9 +1,5 @@
-music
-
-*.png
-*.wav
-*.log
-
+# phone book file
+*.pb
 
 *.py[cod]
 

@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import sys
 import json
 import os.path
@@ -134,7 +136,7 @@ func_dict = {'create': create,
 
 def main():
     global func_dict
-    if len(sys.argv) <= 1:
+    if len(sys.argv) <=1:
         print 'please provide operation'
     else:
         operation = sys.argv[1]
@@ -148,7 +150,7 @@ def main():
             else:
                 params.append(sys.argv[i])
 
-    print func_dict[operation](params, phonebook)
+        print func_dict[operation](params, phonebook)
 
 if __name__ == '__main__':
     main()

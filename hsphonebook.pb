@@ -1,1 +1,0 @@
-[{"phone": "425 2424 2342", "name": "Sarah bla"}, {"phone": "776 345 3336", "name": "John bla"}]

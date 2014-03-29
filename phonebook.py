@@ -5,13 +5,18 @@ import json
 import os.path
 from config import pb_path
 
+success_msg = "Great! %s operation is successful"
+
+
+def get_msg(successful, params):
+    return success_msg %(params)
 
 def invalid_params(params, func_name, count, phonebook = pb_path):
     if len(params) <= count-1:
         return 'Error: %s operation requires at least %d argument' %(func_name, count)
 
     if not os.path.isfile(phonebook):
-        return 'Error: phone book does not exist'
+        return 'Error: phone book does not exist %s' %phonebook
     
     return None
 
@@ -24,13 +29,15 @@ def set_default(params, phonebook):
         config.write('pb_path = "%s"' %params[0])
 
 def create(params, phonebook):
+    global success_msg
+
     with open(params[0], 'w+') as phonebook:
         phonebook.write('[]')
     
-    return 'phonebook created'
+    return get_msg(success_msg, "create")
 
 def lookup(params, phonebook):
-    error = invalid_params(params, 'lookup' , 1)
+    error = invalid_params(params, 'lookup' , 1, phonebook)
     if error:
         return error
 
@@ -38,7 +45,7 @@ def lookup(params, phonebook):
     pb = json.load(open(phonebook, 'r'))
     contact_list = search(pb, 'name', search_name)
     if contact_list == '':
-        return 'phone record with for %s cannot be found' % search_name
+        return 'Error: phone record with for %s cannot be found' % search_name
     else:
         return contact_list
 
@@ -57,7 +64,7 @@ def search(pb, field, value):
     return contact_list
 
 def add(params, phonebook):
-    error = invalid_params(params, 'add' , 2)
+    error = invalid_params(params, 'add' , 2, phonebook)
     if error:
         return error
 
@@ -67,16 +74,16 @@ def add(params, phonebook):
     pb = json.load(open(phonebook, 'r'))
 
     if get_contact(pb, contact['name']) is not None:
-        return "Contact already existed! Nothing added."
+        return "Error: Contact already existed! Nothing added."
 
     pb.append(contact)
 
     json.dump(pb, open(phonebook, 'w'))
 
-    return 'contact information added to a phone book'
+    return get_msg(success_msg, "add")
 
 def change(params, phonebook):
-    error = invalid_params(params, 'chane' , 2)
+    error = invalid_params(params, 'chane' , 2, phonebook)
     if error:
         return error
 
@@ -92,10 +99,10 @@ def change(params, phonebook):
     contact['phone'] = phone 
     json.dump(pb, open(phonebook, 'w'))
 
-    return "Great! change was successful"
+    return get_msg(success_msg, "change")
 
 def remove(params, phonebook):
-    error = invalid_params(params, 'remove' , 1)
+    error = invalid_params(params, 'remove' , 1, phonebook)
     if error:
         return error
     
@@ -109,10 +116,10 @@ def remove(params, phonebook):
     pb.remove(contact)
     json.dump(pb, open(phonebook, 'w'))
 
-    return "Great! contact deleted"
+    return get_msg(success_msg, "remove")
 
 def reverse_lookup(params, phonebook):
-    error = invalid_params(params, 'reverse lookup' , 1)
+    error = invalid_params(params, 'reverse lookup' , 1, phonebook)
     if error:
         return error
 
@@ -121,7 +128,7 @@ def reverse_lookup(params, phonebook):
     pb = json.load(open(phonebook, 'r'))
     contact_list = search(pb, 'phone', phone)
     if contact_list is '':
-        return 'No contact record are found'
+        return 'Error: No contact record are found'
 
     return contact_list
 

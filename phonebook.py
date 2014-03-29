@@ -17,7 +17,7 @@ def invalid_params(params, func_name, count, phonebook = pb_path):
 
     if not os.path.isfile(phonebook):
         return 'Error: phone book does not exist %s' %phonebook
-    
+
     return None
 
 def set_default(params, phonebook):
@@ -33,7 +33,7 @@ def create(params, phonebook):
 
     with open(params[0], 'w+') as phonebook:
         phonebook.write('[]')
-    
+
     return get_msg(success_msg, "create")
 
 def lookup(params, phonebook):
@@ -60,7 +60,7 @@ def search(pb, field, value):
     for contact in pb:
         if value.lower() in contact[field].lower():
             contact_list += '%s %s\n' %(contact["name"], contact["phone"])
-    
+
     return contact_list
 
 def add(params, phonebook):
@@ -70,7 +70,7 @@ def add(params, phonebook):
 
     contact = {"name": params[0],
              "phone": params[1]}
-    
+
     pb = json.load(open(phonebook, 'r'))
 
     if get_contact(pb, contact['name']) is not None:
@@ -95,8 +95,8 @@ def change(params, phonebook):
     contact = get_contact(pb, name)
     if contact is None:
         return 'Error: contact cannot be found'
-    
-    contact['phone'] = phone 
+
+    contact['phone'] = phone
     json.dump(pb, open(phonebook, 'w'))
 
     return get_msg(success_msg, "change")
@@ -105,7 +105,7 @@ def remove(params, phonebook):
     error = invalid_params(params, 'remove' , 1, phonebook)
     if error:
         return error
-    
+
     name = params[0]
 
     pb = json.load(open(phonebook, 'r'))

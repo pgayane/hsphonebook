@@ -7,6 +7,11 @@ from config import pb_path
 
 success_msg = "Great! %s operation is successful"
 
+func_dict = {}
+
+def cmd(func):
+    func_dict[func.__name__.replace('_', '-')] = func
+    return func
 
 def get_msg(successful, params):
     return success_msg %(params)
@@ -20,6 +25,7 @@ def invalid_params(params, func_name, count, phonebook = pb_path):
 
     return None
 
+@cmd
 def set_default(params, phonebook):
     error = invalid_params(params, 'set-deafult' , 1)
     if error:
@@ -28,6 +34,7 @@ def set_default(params, phonebook):
     with open('config.py', 'w+') as config:
         config.write('pb_path = "%s"' %params[0])
 
+@cmd
 def create(params, phonebook):
     global success_msg
 
@@ -36,6 +43,7 @@ def create(params, phonebook):
 
     return get_msg(success_msg, "create")
 
+@cmd
 def lookup(params, phonebook):
     error = invalid_params(params, 'lookup' , 1, phonebook)
     if error:
@@ -63,6 +71,7 @@ def search(pb, field, value):
 
     return contact_list
 
+@cmd
 def add(params, phonebook):
     error = invalid_params(params, 'add' , 2, phonebook)
     if error:
@@ -82,6 +91,7 @@ def add(params, phonebook):
 
     return get_msg(success_msg, "add")
 
+@cmd
 def change(params, phonebook):
     error = invalid_params(params, 'chane' , 2, phonebook)
     if error:
@@ -101,6 +111,7 @@ def change(params, phonebook):
 
     return get_msg(success_msg, "change")
 
+@cmd
 def remove(params, phonebook):
     error = invalid_params(params, 'remove' , 1, phonebook)
     if error:
@@ -118,6 +129,7 @@ def remove(params, phonebook):
 
     return get_msg(success_msg, "remove")
 
+@cmd
 def reverse_lookup(params, phonebook):
     error = invalid_params(params, 'reverse lookup' , 1, phonebook)
     if error:
@@ -132,19 +144,10 @@ def reverse_lookup(params, phonebook):
 
     return contact_list
 
-
-func_dict = {'create': create,
-            'lookup': lookup,
-            'add': add,
-            'change': change,
-            'remove': remove,
-            'reverse-lookup': reverse_lookup,
-            'set-deafult': set_default}
-
 def main():
     global func_dict
     if len(sys.argv) <=1:
-        print 'please provide operation'
+        print 'please provide operation (%s)' % ', '.join(func_dict.keys())
     else:
         operation = sys.argv[1]
         params = []

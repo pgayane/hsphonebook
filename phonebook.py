@@ -5,12 +5,14 @@ import json
 import os.path
 from config import pb_path
 import inspect
+import functools
 
 success_msg = "Great! %s operation is successful"
 
 func_dict = {}
 
 def cmd(func):
+    @functools.wraps(func)
     def error_checked_cmd(*args):
         params = inspect.getargspec(func).args
         error = invalid_params(params, args, func.__name__)
@@ -72,13 +74,9 @@ def search(pb, field, value):
     return contact_list
 
 @cmd
-def add(params, phonebook):
-    error = invalid_params(params, 'add' , 2, phonebook)
-    if error:
-        return error
-
-    contact = {"name": params[0],
-             "phone": params[1]}
+def add(name, phone, phonebook):
+    contact = {"name": name,
+             "phone": phone}
 
     pb = json.load(open(phonebook, 'r'))
 

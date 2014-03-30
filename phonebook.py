@@ -4,52 +4,52 @@ import sys
 import json
 import os.path
 from config import pb_path
+import inspect
 
 success_msg = "Great! %s operation is successful"
 
 func_dict = {}
 
 def cmd(func):
-    func_dict[func.__name__.replace('_', '-')] = func
-    return func
+    def error_checked_cmd(*args):
+        params = inspect.getargspec(func).args
+        error = invalid_params(params, args, func.__name__)
+        if error:
+            return error
+        return func(*args)
+    func_dict[func.__name__.replace('_', '-')] = error_checked_cmd
+    return error_checked_cmd
 
 def get_msg(successful, params):
-    return success_msg %(params)
+    return success_msg % (params)
 
-def invalid_params(params, func_name, count, phonebook = pb_path):
-    if len(params) <= count-1:
-        return 'Error: %s operation requires at least %d argument' %(func_name, count)
-
-    if not os.path.isfile(phonebook):
-        return 'Error: phone book does not exist %s' %phonebook
-
+def invalid_params(params, args, func_name):
+    if len(params) != len(args):
+        print params
+        print args
+        return 'Error: %s operation requires at least %d argument' % (func_name, len(params))
+    if 'phonebook' in params:
+        phonebook = args[params.index('phonebook')]
+        if not os.path.isfile(phonebook):
+            return 'Error: phone book does not exist %s' %phonebook
     return None
 
 @cmd
-def set_default(params, phonebook):
-    error = invalid_params(params, 'set-deafult' , 1)
-    if error:
-        return error
-
+def set_default(default_phonebook):
     with open('config.py', 'w+') as config:
-        config.write('pb_path = "%s"' %params[0])
+        config.write('pb_path = "%s"' % default_phonebook)
 
 @cmd
-def create(params, phonebook):
+def create(phonebook_name):
     global success_msg
 
-    with open(params[0], 'w+') as phonebook:
+    with open(phonebook_name, 'w+') as phonebook:
         phonebook.write('[]')
 
     return get_msg(success_msg, "create")
 
 @cmd
-def lookup(params, phonebook):
-    error = invalid_params(params, 'lookup' , 1, phonebook)
-    if error:
-        return error
-
-    search_name = params[0]
+def lookup(search_name, phonebook):
     pb = json.load(open(phonebook, 'r'))
     contact_list = search(pb, 'name', search_name)
     if contact_list == '':
@@ -92,14 +92,7 @@ def add(params, phonebook):
     return get_msg(success_msg, "add")
 
 @cmd
-def change(params, phonebook):
-    error = invalid_params(params, 'chane' , 2, phonebook)
-    if error:
-        return error
-
-    name = params[0]
-    phone = params[1]
-
+def change(name, phone, phonebook):
     pb = json.load(open(phonebook, 'r'))
 
     contact = get_contact(pb, name)
@@ -112,13 +105,7 @@ def change(params, phonebook):
     return get_msg(success_msg, "change")
 
 @cmd
-def remove(params, phonebook):
-    error = invalid_params(params, 'remove' , 1, phonebook)
-    if error:
-        return error
-
-    name = params[0]
-
+def remove(name, phonebook):
     pb = json.load(open(phonebook, 'r'))
     contact = get_contact(pb, name)
     if contact is None:
@@ -130,18 +117,11 @@ def remove(params, phonebook):
     return get_msg(success_msg, "remove")
 
 @cmd
-def reverse_lookup(params, phonebook):
-    error = invalid_params(params, 'reverse lookup' , 1, phonebook)
-    if error:
-        return error
-
-    phone = params[0]
-
+def reverse_lookup(phone, phonebook):
     pb = json.load(open(phonebook, 'r'))
     contact_list = search(pb, 'phone', phone)
     if contact_list is '':
         return 'Error: No contact record are found'
-
     return contact_list
 
 def main():
@@ -150,17 +130,17 @@ def main():
         print 'please provide operation (%s)' % ', '.join(func_dict.keys())
     else:
         operation = sys.argv[1]
-        params = []
         phonebook = pb_path # deafult
 
-        for i in range(2, len(sys.argv)):
-            if sys.argv[i] == '-b':
-                phonebook = sys.argv[i+1]
-                break # should be the last argument
-            else:
-                params.append(sys.argv[i])
-
-        print func_dict[operation](params, phonebook)
+        args = sys.argv[2:]
+        if '-b' in args:
+            i = args.index('-b')
+            phonebook = args.pop(i)
+        command = func_dict[operation]
+        if 'phonebook' in inspect.getargspec(command).args:
+            print command(*args, phonebook=phonebook)
+        else:
+            print command(*args)
 
 if __name__ == '__main__':
     main()

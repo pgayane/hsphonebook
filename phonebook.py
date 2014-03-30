@@ -7,9 +7,9 @@ from config import pb_path
 import inspect
 import functools
 
-success_msg = "Great! %s operation is successful"
+SUCCESS_MSG = "Great! %s operation is successful"
 
-func_dict = {}
+FUNC_DICT = {}
 
 def cmd(func):
     @functools.wraps(func)
@@ -19,11 +19,11 @@ def cmd(func):
         if error:
             return error
         return func(*args)
-    func_dict[func.__name__.replace('_', '-')] = error_checked_cmd
+    FUNC_DICT[func.__name__.replace('_', '-')] = error_checked_cmd
     return error_checked_cmd
 
-def get_msg(successful, params):
-    return success_msg % (params)
+def get_msg(params):
+    return SUCCESS_MSG % (params)
 
 def invalid_params(params, args, func_name):
     if len(params) != len(args):
@@ -43,12 +43,10 @@ def set_default(default_phonebook):
 
 @cmd
 def create(phonebook_name):
-    global success_msg
-
     with open(phonebook_name, 'w+') as phonebook:
         phonebook.write('[]')
 
-    return get_msg(success_msg, "create")
+    return get_msg("create")
 
 @cmd
 def lookup(search_name, phonebook):
@@ -87,7 +85,7 @@ def add(name, phone, phonebook):
 
     json.dump(pb, open(phonebook, 'w'))
 
-    return get_msg(success_msg, "add")
+    return get_msg("add")
 
 @cmd
 def change(name, phone, phonebook):
@@ -100,7 +98,7 @@ def change(name, phone, phonebook):
     contact['phone'] = phone
     json.dump(pb, open(phonebook, 'w'))
 
-    return get_msg(success_msg, "change")
+    return get_msg("change")
 
 @cmd
 def remove(name, phonebook):
@@ -112,7 +110,7 @@ def remove(name, phonebook):
     pb.remove(contact)
     json.dump(pb, open(phonebook, 'w'))
 
-    return get_msg(success_msg, "remove")
+    return get_msg("remove")
 
 @cmd
 def reverse_lookup(phone, phonebook):
@@ -123,9 +121,8 @@ def reverse_lookup(phone, phonebook):
     return contact_list
 
 def main():
-    global func_dict
     if len(sys.argv) <=1:
-        print 'please provide operation (%s)' % ', '.join(func_dict.keys())
+        print 'please provide operation (%s)' % ', '.join(FUNC_DICT.keys())
     else:
         operation = sys.argv[1]
         phonebook = pb_path # deafult
@@ -134,7 +131,7 @@ def main():
         if '-b' in args:
             i = args.index('-b')
             phonebook = args.pop(i)
-        command = func_dict[operation]
+        command = FUNC_DICT[operation]
         if 'phonebook' in inspect.getargspec(command).args:
             print command(*args, phonebook=phonebook)
         else:

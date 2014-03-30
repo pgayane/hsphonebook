@@ -6,10 +6,43 @@ import os.path
 from config import pb_path
 import inspect
 import functools
+import re
 
 SUCCESS_MSG = "Great! %s operation is successful"
 
 FUNC_DICT = {}
+
+class Phonebook(object):
+    @classmethod
+    def create(cls, filename):
+        with open(filename, 'w+') as phonebook:
+            phonebook.write('[]')
+    def __init__(self, filename):
+        self.filename = filename
+    def __setitem__(self, name, phone):
+        contact = {"name": name,
+                   "phone": phone}
+        with open(self.filename, 'r') as readfile:
+            data = json.load(readfile)
+            data.append(contact)
+            with open(self.filename, 'w') as writefile:
+                json.dumps(data, writefile)
+    def __getitem__(self, name):
+        with open(self.filename, 'r') as readfile:
+            pb = json.load(readfile)
+            return [(c['name'], c['phone']) for c in pb if name.lower() in c['name'].lower()]
+    def __delitem__(self, contact):
+        with open(self.filename, 'r') as readfile:
+            data = json.load(readfile)
+            data.remove(contact)
+            with open(self.filename, 'w') as writefile:
+                json.dumps(data, writefile)
+    def reverse_lookup(self, phone):
+        normalize = lambda x: re.sub(r'[^\d]', '', x)
+        phone = normalize(phone)
+        print 'normalized:', phone
+        with json.load(open(self.filename, 'r')) as pb:
+            return [(c['name'], c['phone']) for c in pb if phone == normalize(c['phone'])]
 
 def cmd(func):
     @functools.wraps(func)
@@ -18,6 +51,13 @@ def cmd(func):
         error = invalid_params(params, args, func.__name__)
         if error:
             return error
+        if 'phonebook' in params:
+            pb_index = params.index('phonebook')
+            phonebook = args[pb_index]
+            if not os.path.isfile(phonebook):
+                return 'Error: phone book does not exist %s' % phonebook
+            phonebook = Phonebook(phonebook)
+            args = args[:pb_index] + (phonebook,) + args[pb_index+1:]
         result = func(*args)
         if result:
             return result
@@ -33,10 +73,6 @@ def invalid_params(params, args, func_name):
         print params
         print args
         return 'Error: %s operation requires at least %d argument' % (func_name, len(params))
-    if 'phonebook' in params:
-        phonebook = args[params.index('phonebook')]
-        if not os.path.isfile(phonebook):
-            return 'Error: phone book does not exist %s' %phonebook
     return None
 
 @cmd
@@ -46,72 +82,43 @@ def set_default(default_phonebook):
 
 @cmd
 def create(phonebook_name):
-    with open(phonebook_name, 'w+') as phonebook:
-        phonebook.write('[]')
+    Phonebook.create(phonebook_name)
 
 @cmd
 def lookup(search_name, phonebook):
-    pb = json.load(open(phonebook, 'r'))
-    contact_list = search(pb, 'name', search_name)
-    if contact_list == '':
+    contact_list = phonebook[search_name]
+    if not contact_list:
         return 'Error: phone record with for %s cannot be found' % search_name
-    else:
-        return contact_list
-
-def get_contact(pb, name):
-    for c in pb:
-        if c['name'].lower() == name.lower():
-            return c
-    return None
-
-def search(pb, field, value):
-    contact_list = ''
-    for contact in pb:
-        if value.lower() in contact[field].lower():
-            contact_list += '%s %s\n' %(contact["name"], contact["phone"])
-
-    return contact_list
+    return ''.join(['%s %s\n' for c in contact_list])
 
 @cmd
 def add(name, phone, phonebook):
-    contact = {"name": name,
-             "phone": phone}
-
-    pb = json.load(open(phonebook, 'r'))
-
-    if get_contact(pb, contact['name']) is not None:
+    if phonebook[name]:
         return "Error: Contact already existed! Nothing added."
-
-    pb.append(contact)
-
-    json.dump(pb, open(phonebook, 'w'))
+    phonebook[name] = phone
 
 @cmd
 def change(name, phone, phonebook):
-    pb = json.load(open(phonebook, 'r'))
-
-    contact = get_contact(pb, name)
-    if contact is None:
+    contacts = phonebook[name]
+    if not contacts:
         return 'Error: contact cannot be found'
-
-    contact['phone'] = phone
-    json.dump(pb, open(phonebook, 'w'))
+    if len(contacts) > 1:
+        return 'Error: multiple contacts match query: ' + ' '.join(c['name'] for c in contacts)
+    phonebook[contacts[0]['name']] = phone
 
 @cmd
 def remove(name, phonebook):
-    pb = json.load(open(phonebook, 'r'))
-    contact = get_contact(pb, name)
-    if contact is None:
+    contacts = phonebook[name]
+    if not contacts:
         return 'Error: contact cannot be found'
-
-    pb.remove(contact)
-    json.dump(pb, open(phonebook, 'w'))
+    if len(contacts) > 1:
+        return 'Error: multiple contacts match query: ' + ' '.join(c['name'] for c in contacts)
+    del phonebook[contacts[0]]
 
 @cmd
 def reverse_lookup(phone, phonebook):
-    pb = json.load(open(phonebook, 'r'))
-    contact_list = search(pb, 'phone', phone)
-    if contact_list is '':
+    contact_list = phonebook.reverse_lookup(phone)
+    if not contact_list:
         return 'Error: No contact record are found'
     return contact_list
 

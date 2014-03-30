@@ -18,7 +18,10 @@ def cmd(func):
         error = invalid_params(params, args, func.__name__)
         if error:
             return error
-        return func(*args)
+        result = func(*args)
+        if result:
+            return result
+        return get_msg(func.__name__)
     FUNC_DICT[func.__name__.replace('_', '-')] = error_checked_cmd
     return error_checked_cmd
 
@@ -45,8 +48,6 @@ def set_default(default_phonebook):
 def create(phonebook_name):
     with open(phonebook_name, 'w+') as phonebook:
         phonebook.write('[]')
-
-    return get_msg("create")
 
 @cmd
 def lookup(search_name, phonebook):
@@ -85,8 +86,6 @@ def add(name, phone, phonebook):
 
     json.dump(pb, open(phonebook, 'w'))
 
-    return get_msg("add")
-
 @cmd
 def change(name, phone, phonebook):
     pb = json.load(open(phonebook, 'r'))
@@ -98,8 +97,6 @@ def change(name, phone, phonebook):
     contact['phone'] = phone
     json.dump(pb, open(phonebook, 'w'))
 
-    return get_msg("change")
-
 @cmd
 def remove(name, phonebook):
     pb = json.load(open(phonebook, 'r'))
@@ -109,8 +106,6 @@ def remove(name, phonebook):
 
     pb.remove(contact)
     json.dump(pb, open(phonebook, 'w'))
-
-    return get_msg("remove")
 
 @cmd
 def reverse_lookup(phone, phonebook):
